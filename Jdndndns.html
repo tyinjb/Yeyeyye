@@ -1,0 +1,790 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a0a16">
+<meta name="description" content="Тебе письмо 💌 Открой, это тебе">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Тебе письмо 💌">
+<meta property="og:description" content="Открой, это тебе">
+<meta name="twitter:card" content="summary">
+<title>Тебе письмо</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Montserrat:wght@500;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+<!--
+╔══════════════════════════════════════════════════════════════╗
+║  КАК ПОМЕНЯТЬ ТЕКСТЫ, ВОПРОС И ПАРОЛЬ                        ║
+║  Всё настраивается в блоке CONFIG в самом низу файла         ║
+║  (внутри <script>). Меняйте только то, что в кавычках:       ║
+║   • NAME      — имя получателя («Варя»)                      ║
+║   • QUESTION  — вопрос-подсказка на экране пароля            ║
+║   • SECRET    — секретное слово; можно несколько вариантов   ║
+║                 через запятую: ["кафе", "в кафе"]            ║
+║   • остальные поля — заголовки, подписи, текст розыгрыша,    ║
+║     список «зашифрованных файлов» (FILES)                    ║
+║                                                              ║
+║  КАК БЫСТРО ВЫЛОЖИТЬ ПО ССЫЛКЕ (бесплатно)                   ║
+║   1. Netlify Drop: зайдите на app.netlify.com/drop и         ║
+║      перетащите туда этот файл (лучше в папке, файл назвать  ║
+║      index.html) — через пару секунд получите ссылку.        ║
+║   2. Или GitHub Pages: создайте репозиторий, загрузите       ║
+║      index.html, в Settings → Pages включите публикацию.     ║
+║   3. Или Cloudflare Pages / Vercel — аналогично, загрузкой.  ║
+║  Ссылку отправьте в мессенджер. Файл открывается и просто    ║
+║  двойным кликом локально — для проверки.                     ║
+╚══════════════════════════════════════════════════════════════╝
+-->
+
+<style>
+:root{
+  --bg:#14070f;
+  --plum:#3a1230;
+  --pink:#ff6fa5;
+  --pink-soft:#ffb3d1;
+  --violet:#a46bff;
+  --cream:#fff1dc;
+  --text:#ffe3ee;
+  --serif:'Cormorant Garamond','Playfair Display',Georgia,serif;
+  --sans:'Montserrat',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:'IBM Plex Mono','Courier New',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);overflow:hidden;overscroll-behavior:none}
+body{font-family:var(--sans);color:var(--text);-webkit-font-smoothing:antialiased}
+
+/* ---------- Общие сцены ---------- */
+.scene{
+  position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:max(24px,env(safe-area-inset-top)) 24px max(24px,env(safe-area-inset-bottom));
+  opacity:0;visibility:hidden;transition:opacity .9s ease,visibility .9s;
+  background:
+    radial-gradient(70% 45% at 50% 0%,rgba(164,107,255,.22),transparent 70%),
+    radial-gradient(80% 50% at 50% 105%,rgba(255,111,165,.25),transparent 70%),
+    linear-gradient(180deg,#1d0b19,#2a0f26 55%,#14070f);
+}
+.scene.active{opacity:1;visibility:visible}
+
+/* плавающие сердечки на фоне */
+.hearts{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.hearts i{
+  position:absolute;bottom:-30px;font-style:normal;color:var(--pink);opacity:0;
+  animation:floatUp linear infinite;filter:blur(.4px);
+}
+@keyframes floatUp{
+  0%{transform:translateY(0) translateX(0) scale(.8);opacity:0}
+  15%{opacity:.35}
+  100%{transform:translateY(-105vh) translateX(var(--dx,20px)) scale(1.2);opacity:0}
+}
+
+/* ---------- Экран пароля ---------- */
+#s-lock .wrap{position:relative;width:100%;max-width:380px;text-align:center}
+.title{
+  font-family:var(--serif);font-weight:600;font-size:clamp(30px,9vw,40px);line-height:1.1;
+  text-shadow:0 0 30px rgba(255,111,165,.45);
+}
+.hint{
+  margin-top:12px;font-family:var(--serif);font-style:italic;font-size:clamp(20px,5.6vw,24px);color:var(--pink-soft);
+}
+.field{margin-top:34px;position:relative}
+.field input{
+  width:100%;height:56px;border-radius:28px;border:1px solid rgba(255,179,209,.25);
+  background:rgba(255,255,255,.06);color:#fff;text-align:center;
+  font:500 16px var(--sans); /* 16px — чтобы iOS не зумил */
+  outline:none;transition:border-color .3s,box-shadow .3s,background .3s;
+  box-shadow:0 0 0 0 rgba(255,111,165,0);
+}
+.field input::placeholder{color:rgba(255,227,238,.45)}
+.field input:focus{
+  border-color:rgba(255,111,165,.8);background:rgba(255,255,255,.09);
+  box-shadow:0 0 28px rgba(255,111,165,.35);
+}
+.field.shake input{animation:shake .5s cubic-bezier(.36,.07,.19,.97);border-color:var(--pink)}
+@keyframes shake{
+  10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}
+  30%,50%,70%{transform:translateX(-8px)}40%,60%{transform:translateX(8px)}
+}
+.btn{
+  margin-top:14px;width:100%;height:56px;border:0;border-radius:28px;cursor:pointer;
+  font:600 16px var(--sans);letter-spacing:.04em;color:#5a1137;
+  background:linear-gradient(135deg,#ffc2dc,#ff7fb0);
+  box-shadow:0 0 34px rgba(255,111,165,.55),0 8px 24px rgba(0,0,0,.35);
+  transition:transform .15s,box-shadow .3s;
+  animation:btnGlow 2.8s ease-in-out infinite;
+}
+.btn:active{transform:scale(.97)}
+@keyframes btnGlow{50%{box-shadow:0 0 50px rgba(255,111,165,.85),0 8px 24px rgba(0,0,0,.35)}}
+.msg{min-height:22px;margin-top:16px;font-family:var(--serif);font-style:italic;font-size:19px;color:var(--pink-soft);opacity:0;transition:opacity .4s}
+.msg.show{opacity:1}
+
+/* ---------- Экран приветствия и конверта ---------- */
+#s-env .wrap{position:relative;display:flex;flex-direction:column;align-items:center;width:100%}
+.hello{
+  font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(34px,10vw,46px);
+  color:var(--pink-soft);text-shadow:0 0 26px rgba(255,111,165,.6);
+  opacity:0;transform:translateY(10px);
+}
+#s-env.active .hello{animation:fadeUp 1.4s .5s forwards}
+@keyframes fadeUp{to{opacity:1;transform:none}}
+
+.env-stage{
+  margin-top:clamp(100px,17vh,135px);width:min(78vw,320px);aspect-ratio:3/2;position:relative;
+  perspective:900px;cursor:pointer;
+  opacity:0;transform:scale(.85);
+}
+#s-env.active .env-stage{animation:envIn 1.2s 1.6s cubic-bezier(.2,.9,.3,1.2) forwards}
+@keyframes envIn{to{opacity:1;transform:scale(1)}}
+.env-glow{
+  position:absolute;inset:-18%;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(255,200,225,.55),rgba(255,111,165,.18) 55%,transparent 75%);
+  animation:pulse 2.6s ease-in-out infinite;pointer-events:none;
+}
+@keyframes pulse{50%{transform:scale(1.12);opacity:.75}}
+.env{position:absolute;inset:0;transform-style:preserve-3d;animation:bob 3.4s ease-in-out infinite}
+.env-stage.open .env{animation:none}
+@keyframes bob{50%{transform:translateY(-6px)}}
+.env .back,.env .front,.env .flap,.env .letter{position:absolute}
+.env .back{inset:0;border-radius:8px;background:linear-gradient(160deg,#f6dcc0,#e9bfa2);box-shadow:0 18px 50px rgba(0,0,0,.5),0 0 40px rgba(255,170,205,.4)}
+.env .letter{
+  left:7%;right:7%;top:6%;bottom:10%;border-radius:6px;z-index:2;
+  background:linear-gradient(180deg,#fffaf0,#fbe9d6);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;
+  transition:transform 1s cubic-bezier(.3,.8,.3,1) .55s;
+  box-shadow:0 2px 10px rgba(0,0,0,.2);
+}
+.letter .to{font-family:var(--serif);font-style:italic;font-weight:600;font-size:clamp(26px,8vw,34px);color:#9b2a5a}
+.letter .ln{width:55%;height:2px;border-radius:2px;background:rgba(155,42,90,.2)}
+.env .front{
+  inset:0;z-index:3;border-radius:8px;pointer-events:none;
+  background:
+    linear-gradient(135deg,#f1cdb0 0 50%,transparent 50%) left/50% 100% no-repeat,
+    linear-gradient(225deg,#f1cdb0 0 50%,transparent 50%) right/50% 100% no-repeat;
+  clip-path:polygon(0 0,50% 55%,100% 0,100% 100%,0 100%);
+  filter:drop-shadow(0 -2px 3px rgba(120,40,70,.15));
+}
+.env .front::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(0deg,#ecc4a6 0 38%,transparent 38%);
+  clip-path:polygon(0 100%,50% 40%,100% 100%);
+}
+.env .flap{
+  left:0;right:0;top:0;height:58%;z-index:4;transform-origin:top center;
+  background:linear-gradient(180deg,#f9dfc6,#eab99c);
+  clip-path:polygon(0 0,100% 0,50% 100%);
+  transition:transform .8s cubic-bezier(.5,0,.2,1),z-index 0s .4s;
+  backface-visibility:visible;
+}
+.env-stage.open .flap{transform:rotateX(180deg);z-index:1}
+.env-stage.open .letter{transform:translateY(-24%)}
+.seal{
+  position:absolute;left:50%;top:48%;width:20%;aspect-ratio:1;transform:translate(-50%,-50%);z-index:5;
+  border-radius:50%;display:grid;place-items:center;font-size:clamp(16px,5vw,22px);color:#ffd9e5;
+  background:radial-gradient(circle at 35% 30%,#ff5a7a,#b0102f 70%);
+  box-shadow:0 3px 10px rgba(120,0,30,.55),inset 0 -2px 4px rgba(0,0,0,.3);
+  transition:opacity .3s,transform .5s;
+}
+.env-stage.open .seal{opacity:0;transform:translate(-50%,-50%) scale(.3)}
+.cap{
+  margin-top:40px;font-family:var(--serif);font-style:italic;font-size:clamp(21px,6vw,26px);color:var(--pink-soft);
+  opacity:0;min-height:34px;
+}
+#s-env.active .cap{animation:fadeUp 1s 2.6s forwards}
+.cap.blink{animation:capBlink 1.1s ease-in-out infinite !important;opacity:1}
+@keyframes capBlink{50%{opacity:.4}}
+
+/* ---------- Розыгрыш ---------- */
+#prank{position:fixed;inset:0;z-index:50;display:none;background:#000;overflow:hidden;font-family:var(--mono)}
+#prank.on{display:block}
+.pscene{position:absolute;inset:0;display:none}
+.pscene.on{display:block}
+
+/* 1: чёрный экран с логами */
+#p1{background:#000;color:#c0c0c0;padding:max(14px,env(safe-area-inset-top)) 14px 14px}
+#p1 .log{font-size:12px;line-height:1.45;white-space:pre-wrap;color:#bbb}
+#p1 .log .e{color:#ff4d4d}
+#p1 .eye{
+  position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;
+  opacity:0;font-family:var(--sans);letter-spacing:.2em;font-weight:600;font-size:17px;color:#fff;
+}
+#p1 .eye svg{display:block;margin:0 auto 14px;width:72px;height:auto}
+#p1 .eye.on{opacity:1;animation:glitch .35s steps(2) 3}
+@keyframes glitch{
+  0%{transform:translateY(-50%)}
+  25%{transform:translateY(-50%) translateX(-6px);filter:hue-rotate(90deg)}
+  50%{transform:translateY(-50%) translateX(6px)}
+  75%{transform:translateY(-52%) translateX(0);filter:invert(1)}
+}
+
+/* 2: красный экран с ASCII */
+#p2{background:#8a0a00;display:none;align-items:center;justify-content:center;flex-direction:column;gap:18px}
+#p2.on{display:flex}
+#p2 pre{
+  color:#ffb4a8;font-size:clamp(8px,2.6vw,12px);line-height:1.1;text-shadow:0 0 6px rgba(255,120,100,.8);
+  animation:flick .12s steps(2) infinite;
+}
+@keyframes flick{50%{opacity:.82;transform:translateX(1px)}}
+#p2 .t{color:#ffd6cf;font-size:13px;letter-spacing:.14em;text-align:center;padding:0 20px}
+
+/* 3: синий экран в стиле старого терминала */
+#p3{background:#0000c8;color:#e8e8ff;padding:max(16px,env(safe-area-inset-top)) 14px 14px}
+.bsod{max-width:560px;margin:0 auto;height:100%;padding-top:34px;display:flex;flex-direction:column}
+.bsod .head{
+  flex-shrink:0;align-self:center;background:#d8d8ff;color:#0000c8;font-weight:600;font-size:13px;padding:3px 14px;margin:10px 0 16px;
+}
+.bsod .body{
+  border:2px solid #cfcfff;padding:10px 12px 2px;font-size:12px;line-height:1.5;
+  flex-shrink:0;
+}
+.bsod .body p{margin-bottom:10px;white-space:pre-wrap}
+.bsod .body b{color:#fff}
+.prog{margin-top:12px;height:14px;border:2px solid #cfcfff;position:relative}
+.prog i{position:absolute;left:0;top:0;bottom:0;width:0;background:#cfcfff}
+.prompt{margin-top:14px;font-size:13px}
+.prompt label{display:block;margin-bottom:8px;color:#fff}
+.prompt .row{display:flex;align-items:center;gap:6px;border:2px solid #cfcfff;padding:0 10px;height:44px;background:#00008a}
+.prompt .row span{color:#fff}
+.prompt input{
+  flex:1;min-width:0;background:transparent;border:0;outline:none;color:#fff;
+  font:400 16px var(--mono);caret-color:#fff;
+}
+.foot{margin-top:auto;display:flex;justify-content:space-between;font-size:11px;color:#b5b5ff;padding-top:10px}
+.bsod .reply{min-height:20px;margin-top:10px;font-size:12.5px;color:#ffe66b}
+.alert{
+  position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) scale(.9);width:min(86vw,360px);
+  background:#c40000;color:#fff;border:2px solid #ffd0d0;padding:16px;text-align:center;
+  font-size:13px;line-height:1.5;opacity:0;pointer-events:none;
+  box-shadow:0 0 0 6px #0000c8,0 20px 60px rgba(0,0,0,.6);
+}
+.alert.on{opacity:1;transform:translate(-50%,-50%) scale(1);transition:all .25s}
+.alert b{display:block;margin-bottom:6px;letter-spacing:.06em}
+
+/* 4: раскрытие шутки */
+#p4{
+  background:
+    radial-gradient(70% 45% at 50% 20%,rgba(164,107,255,.3),transparent 70%),
+    radial-gradient(80% 50% at 50% 100%,rgba(255,111,165,.35),transparent 70%),
+    linear-gradient(180deg,#1d0b19,#2a0f26);
+  opacity:0;transition:opacity 1s;font-family:var(--sans);
+  align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:24px;gap:10px;
+}
+#p4.on{display:flex}
+#p4.show{opacity:1}
+#p4 .big{font-family:var(--serif);font-weight:600;font-size:clamp(40px,13vw,58px);color:#fff;text-shadow:0 0 30px rgba(255,111,165,.7)}
+#p4 .sub{font-family:var(--serif);font-style:italic;font-size:clamp(21px,6vw,26px);color:var(--pink-soft);max-width:320px;line-height:1.25}
+#p4 .btn{max-width:260px;margin-top:26px}
+
+
+/* ---- терминал взлома ---- */
+#p5{background:#020a04;color:#38ff7e;font-size:12px;line-height:1.5;overflow:hidden}
+#p5::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:3;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.2) 0 1px,transparent 1px 3px),radial-gradient(120% 90% at 50% 50%,transparent 55%,rgba(0,0,0,.75))}
+.zw{position:absolute;inset:0;transition:transform .85s cubic-bezier(.2,.8,.2,1);will-change:transform}
+.zw.z{transition-duration:.5s}
+.hud{position:absolute;top:max(14px,env(safe-area-inset-top));left:14px;right:60px;font-size:10.5px;color:#7dffae;display:flex;gap:12px;white-space:nowrap;overflow:hidden;z-index:2}
+.hud .rec{color:#ff4b4b;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.term{position:absolute;left:14px;right:14px;top:48px;bottom:16px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;
+  white-space:pre-wrap;word-break:break-all;text-shadow:0 0 6px rgba(56,255,126,.55)}
+.term .w{color:#ffd45e}.term .r{color:#ff5a5a}.term .d{color:#5f9c7c}.term .b{color:#fff}
+
+/* ---- «ДОСТУП ПОЛУЧЕН» на весь экран ---- */
+#p6{background:#000;align-items:center;justify-content:center;flex-direction:column;overflow:hidden}
+#p6.on{display:flex}
+#p6 .flash{position:absolute;inset:0;background:#38ff7e;opacity:0}
+#p6.on .flash{animation:flashG .6s ease-out}
+@keyframes flashG{0%{opacity:.9}100%{opacity:0}}
+#p6 .slam{font-weight:600;color:#38ff7e;text-align:center;white-space:pre-line;font-size:clamp(36px,12vw,56px);line-height:1.05;
+  text-shadow:0 0 30px rgba(56,255,126,.9);animation:slam 2s cubic-bezier(.1,.7,.2,1) forwards}
+@keyframes slam{0%{transform:scale(.3);opacity:0}12%{opacity:1}30%{transform:scale(1)}100%{transform:scale(1.9)}}
+#p6 .sub2{margin-top:22px;color:#9bffc0;font-size:12px;letter-spacing:.35em;opacity:0;animation:fadeUp .6s .5s forwards}
+
+/* ---- матрица + зум в глаз ---- */
+#p7{background:#000;overflow:hidden}
+#p7 canvas{position:absolute;inset:0}
+#p7 .eyebox{position:absolute;left:0;right:0;top:50%;margin-top:-80px;text-align:center;color:#fff;font-family:var(--sans);
+  font-weight:600;letter-spacing:.2em;font-size:17px;z-index:2;opacity:0}
+#p7 .eyebox.in{opacity:1;animation:glitch .35s steps(2) 3}
+#p7 .eyebox svg{display:block;margin:0 auto 16px;width:84px;height:auto;background:#000;border-radius:40%;
+  filter:drop-shadow(0 0 14px #f33);transition:transform 1.7s cubic-bezier(.7,0,1,.6)}
+#p7 .eyebox.zoom svg{transform:scale(75)}
+#p7 .eyebox.zoom span{opacity:0;transition:opacity .3s}
+
+/* ---- синий экран: таймер и файлы ---- */
+.timer{text-align:center;color:#ffe66b;font-size:13px;margin-bottom:10px;letter-spacing:.08em}
+.files{margin-top:10px;font-size:11.5px;line-height:1.5;color:#cfcfff;height:64px;flex-shrink:0;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;white-space:nowrap}
+.files .ok{color:#ffe66b}
+
+/* кнопка перезапуска (всегда в углу) */
+#restart{
+  position:fixed;z-index:60;top:max(8px,env(safe-area-inset-top));right:8px;display:none;
+  height:14px;padding:0 5px;border-radius:7px;border:1px solid rgba(255,255,255,.18);
+  background:rgba(0,0,0,.3);color:rgba(255,255,255,.6);font:600 8px/12px var(--sans);cursor:pointer;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+}
+#restart.on{display:block}
+#restart::after{content:"";position:absolute;inset:-12px -10px}
+
+@media (prefers-reduced-motion:reduce){
+  .hearts i,.env,.env-glow,.btn{animation:none !important}
+}
+</style>
+</head>
+<body>
+
+<!-- 1. Экран пароля -->
+<section class="scene active" id="s-lock">
+  <div class="hearts" aria-hidden="true"></div>
+  <div class="wrap">
+    <h1 class="title" id="lockTitle"></h1>
+    <p class="hint" id="lockQuestion"></p>
+    <form class="field" id="form" autocomplete="off">
+      <input id="pw" type="text" enterkeyhint="go" autocapitalize="none" autocorrect="off" spellcheck="false" aria-label="Секретное слово">
+      <button class="btn" type="submit" id="openBtn"></button>
+    </form>
+    <p class="msg" id="msg" role="status"></p>
+  </div>
+</section>
+
+<!-- 2. Конверт -->
+<section class="scene" id="s-env">
+  <div class="hearts" aria-hidden="true"></div>
+  <div class="wrap">
+    <div class="hello" id="hello"></div>
+    <div class="env-stage" id="envStage" role="button" tabindex="0" aria-label="Открыть конверт">
+      <div class="env-glow"></div>
+      <div class="env">
+        <div class="back"></div>
+        <div class="letter"><div class="to" id="letterTo"></div><div class="ln"></div><div class="ln" style="width:38%"></div></div>
+        <div class="front"></div>
+        <div class="flap"></div>
+        <div class="seal">♥</div>
+      </div>
+    </div>
+    <div class="cap" id="cap"></div>
+  </div>
+</section>
+
+<!-- 3. Розыгрыш -->
+<div id="prank" aria-live="polite">
+  <div class="pscene" id="p1">
+    <div class="log" id="log"></div>
+  </div>
+  <div class="pscene" id="p5">
+    <div class="hud"><span id="hudSession"></span><span>TX 12.4 MB/s</span><span class="rec">● REC</span></div>
+    <div class="zw" id="zw"><div class="term" id="term"></div></div>
+  </div>
+  <div class="pscene" id="p6">
+    <div class="flash"></div>
+    <div class="slam" id="slamT"></div>
+    <div class="sub2" id="slamS"></div>
+  </div>
+  <div class="pscene" id="p7">
+    <canvas id="mx"></canvas>
+    <div class="eyebox" id="eyebox">
+      <svg viewBox="0 0 100 50" fill="none" stroke="#fff" stroke-width="3"><path d="M3 25C20 4 80 4 97 25 80 46 20 46 3 25Z"/><circle cx="50" cy="25" r="11" fill="#fff"/><circle cx="50" cy="25" r="4.5" fill="#000" stroke="none"/></svg>
+      <span id="eyeText"></span>
+    </div>
+  </div>
+  <div class="pscene" id="p2">
+    <pre id="skull"></pre>
+    <div class="t" id="redText"></div>
+  </div>
+  <div class="pscene" id="p3">
+    <div class="bsod">
+      <div class="head" id="bHead"></div>
+      <div class="timer" id="timer"></div>
+      <div class="body" id="bBody"></div>
+      <div class="files" id="files"></div>
+      <div class="prog"><i id="prog"></i></div>
+      <form class="prompt" id="bForm" autocomplete="off">
+        <label id="bLabel"></label>
+        <div class="row"><span>&gt;</span><input id="bInput" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" aria-label="Код разблокировки"></div>
+        <div class="reply" id="bReply"></div>
+      </form>
+      <div class="foot"><span id="bFootL"></span><span>Enter [Ввод]</span></div>
+    </div>
+    <div class="alert" id="alertBox"><b id="alertT"></b><span id="alertM"></span></div>
+  </div>
+  <div class="pscene" id="p4">
+    <div class="big" id="jokeBig"></div>
+    <div class="sub" id="jokeSub"></div>
+    <button class="btn" id="again" type="button"></button>
+  </div>
+</div>
+<button id="restart" type="button">↺ сначала</button>
+
+<script>
+/* ═══════════════════ CONFIG — МЕНЯЙТЕ ТОЛЬКО ЭТО ═══════════════════ */
+const CONFIG = {
+  NAME: "Варя",                                  // имя получателя
+  QUESTION: "где мы познакомились?",             // подсказка-вопрос
+  SECRET: ["Некто"],                             // секретное слово (можно несколько вариантов)
+  LOCK_TITLE: "Эта эмоция закрыта словом",
+  PLACEHOLDER: "слово",
+  OPEN_BUTTON: "Открыть",
+  WRONG_HINTS: ["Почти… попробуй ещё раз", "Не то слово, подумай, где всё началось", "Тссс, это знаем только мы двое"],
+  HELLO: "{name}, тебе письмо",                  // {name} подставится автоматически
+  ENVELOPE_CAPTION: "открой, это тебе",
+  OPENING: "открываю…",
+
+  /* Розыгрыш */
+  SLAM_TEXT: "ДОСТУП\nПОЛУЧЕН",                 // огромная надпись после «взлома»
+  SLAM_SUB: "ACCESS GRANTED",
+  EYE_TEXT: "ВАС ЗАМЕТИЛИ",
+  RED_TEXT: "ОБНАРУЖЕНА КРИТИЧЕСКАЯ МИЛОТА",
+  BSOD_HEAD: " Ваши чувства зашифрованы! ",
+  BSOD_BODY: [
+    "Упс! Ваше сердце подверглось масштабной атаке милоты, и теперь оно зашифровано нежностью высшего уровня.",
+    "Любые попытки перезагрузить систему приведут к ещё большему количеству комплиментов.",
+    "Для разблокировки необходимо: 1 (одна) улыбка и 1 (одно) «ты что, дурак?».",
+    "Если у вас есть код, введите его ниже:"
+  ],
+  TIMER_LABEL: "ДО УДАЛЕНИЯ ХОРОШЕГО НАСТРОЕНИЯ:",
+  FILES: ["наши_переписки.db", "фото_с_тобой_(1284).zip", "смешные_стикеры.pack", "улыбка.exe", "хорошее_настроение.sys", "секретные_планы.docx", "котики_подборка.mp4"],
+  BSOD_LABEL: "Введите код разблокировки:",
+  BSOD_REPLIES: [
+    "Код неверный. Попробуйте «обнимашки».",
+    "Ошибка 404: серьёзность не найдена.",
+    "Система смеётся вместе с вами."
+  ],
+  ALERT_TITLE: "ОШИБКА ДОСТУПА",
+  ALERT_TEXT: "Замечена попытка не улыбнуться.\nСистема остановлена.",
+  JOKE_BIG: "Шутка 💗",
+  JOKE_SUB: "Никто ничего не взломал. Просто хотел тебя разыграть и порадовать.",
+  AGAIN_BUTTON: "Ещё раз",
+  RESTART_CORNER: "↺ сначала"
+};
+/* ═══════════════════════════════════════════════════════════════════ */
+
+const $ = id => document.getElementById(id);
+const norm = s => s.toLowerCase().replace(/ё/g,'е').replace(/\s+/g,' ').trim();
+const timers = new Set();
+let runId = 0;
+const later = (fn, ms) => { const my = runId; const t = setTimeout(() => { timers.delete(t); if (my === runId) fn(); }, ms); timers.add(t); return t; };
+const clearAll = () => { timers.forEach(clearTimeout); timers.clear(); runId++; };
+
+/* ---- тексты ---- */
+function applyTexts(){
+  $('lockTitle').textContent = CONFIG.LOCK_TITLE;
+  $('lockQuestion').textContent = '[' + CONFIG.QUESTION + ']';
+  $('pw').placeholder = CONFIG.PLACEHOLDER;
+  $('openBtn').textContent = CONFIG.OPEN_BUTTON;
+  $('hello').textContent = CONFIG.HELLO.replace('{name}', CONFIG.NAME);
+  $('letterTo').textContent = CONFIG.NAME + ',';
+  $('cap').textContent = CONFIG.ENVELOPE_CAPTION;
+  $('eyeText').textContent = CONFIG.EYE_TEXT;
+  $('slamT').textContent = CONFIG.SLAM_TEXT;
+  $('slamS').textContent = CONFIG.SLAM_SUB;
+  $('redText').textContent = CONFIG.RED_TEXT;
+  $('bHead').textContent = CONFIG.BSOD_HEAD;
+  $('bLabel').textContent = CONFIG.BSOD_LABEL;
+  $('alertT').textContent = CONFIG.ALERT_TITLE;
+  $('alertM').textContent = CONFIG.ALERT_TEXT;
+  $('jokeBig').textContent = CONFIG.JOKE_BIG;
+  $('jokeSub').textContent = CONFIG.JOKE_SUB;
+  $('again').textContent = CONFIG.AGAIN_BUTTON;
+  $('restart').textContent = CONFIG.RESTART_CORNER;
+  document.title = CONFIG.HELLO.replace('{name}', CONFIG.NAME);
+}
+
+/* ---- сердечки на фоне ---- */
+function makeHearts(){
+  document.querySelectorAll('.hearts').forEach(box => {
+    box.innerHTML = '';
+    for (let i = 0; i < 14; i++){
+      const h = document.createElement('i');
+      h.textContent = '♥';
+      h.style.left = Math.random()*100 + '%';
+      h.style.fontSize = (10 + Math.random()*16) + 'px';
+      h.style.animationDuration = (9 + Math.random()*9) + 's';
+      h.style.animationDelay = (-Math.random()*14) + 's';
+      h.style.setProperty('--dx', (Math.random()*60 - 30) + 'px');
+      box.appendChild(h);
+    }
+  });
+}
+
+/* ---- переключение экранов ---- */
+function show(id){
+  document.querySelectorAll('.scene').forEach(s => s.classList.toggle('active', s.id === id));
+}
+
+/* ---- пароль ---- */
+const secrets = () => CONFIG.SECRET.map(norm);
+let wrongCount = 0;
+$('form').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = norm($('pw').value);
+  if (secrets().includes(v)){
+    $('pw').blur();
+    $('msg').classList.remove('show');
+    later(() => { show('s-env'); }, 150);
+  } else {
+    const f = e.currentTarget;
+    f.classList.remove('shake'); void f.offsetWidth; f.classList.add('shake');
+    const m = $('msg');
+    m.textContent = v ? CONFIG.WRONG_HINTS[wrongCount++ % CONFIG.WRONG_HINTS.length] : CONFIG.WRONG_HINTS[0];
+    m.classList.add('show');
+  }
+});
+
+/* ---- конверт ---- */
+let opened = false;
+function openEnvelope(){
+  if (opened) return;
+  opened = true;
+  $('envStage').classList.add('open');
+  const cap = $('cap');
+  cap.style.animation = 'none';
+  later(() => { cap.textContent = CONFIG.OPENING; cap.classList.add('blink'); }, 500);
+  later(startPrank, 2300);
+}
+$('envStage').addEventListener('click', openEnvelope);
+$('envStage').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openEnvelope(); } });
+
+/* ---- розыгрыш ---- */
+const hex = () => '0x0' + Math.floor(Math.random()*0xfffffff).toString(16).toUpperCase().padStart(7,'0');
+const SKULL =
+"      ______\n"+
+"   .-\"      \"-.\n"+
+"  /            \\\n"+
+" |,  .-.  .-.  ,|\n"+
+" | )(__/  \\__)( |\n"+
+" |/     /\\     \\|\n"+
+" (_     ^^     _)\n"+
+"  \\__|IIIIII|__/\n"+
+"   | \\IIIIII/ |\n"+
+"   \\          /\n"+
+"    `--------`";
+
+function pscene(id){
+  document.querySelectorAll('.pscene').forEach(s => s.classList.toggle('on', s.id === id));
+}
+
+function startPrank(){
+  $('prank').classList.add('on');
+  $('restart').classList.add('on');
+  runLogs();
+}
+
+const rnd = (a,b) => Math.floor(a + Math.random()*(b-a+1));
+const ipv4 = () => [192,168,rnd(0,9),rnd(2,250)].join('.');
+const vib = p => { try{ navigator.vibrate && navigator.vibrate(p); }catch(e){} };
+const DEVICE = 'iPhone 11 / iOS 17.6 / 828x1792 / ru-RU';
+let mxOn = false;
+
+function runLogs(){
+  pscene('p1');
+  const log = $('log'); log.innerHTML = '';
+  const lines = ['Loading Windows...', 'Checking system integrity...'];
+  let n = 0;
+  const tick = () => {
+    if (n < lines.length) log.innerHTML += lines[n] + '\n';
+    else log.innerHTML += '<span class="e">error: ' + hex() + '</span>\n';
+    n++;
+    const max = Math.floor(innerHeight/18);
+    const arr = log.innerHTML.split('\n');
+    if (arr.length > max) log.innerHTML = arr.slice(-max).join('\n');
+    if (n < 40) later(tick, n < 3 ? 380 : 60);
+  };
+  tick();
+  later(runTerm, 2600);
+}
+
+/* терминал «взлома» с наездами камеры */
+function tline(text, cls){
+  const t = $('term'), d = document.createElement('div');
+  if (cls) d.className = cls;
+  d.textContent = text;
+  t.appendChild(d);
+  while (t.children.length > 60) t.removeChild(t.firstChild);
+  return d;
+}
+function zoomTo(el, hold){
+  if (!el) return;
+  const r = el.getBoundingClientRect(), zw = $('zw');
+  const scale = Math.max(1.6, Math.min(3, (innerWidth - 24) / (Math.max(8, el.textContent.length) * 7.3)));
+  zw.style.transformOrigin = '0px ' + (r.top + r.height/2) + 'px';
+  zw.classList.add('z');
+  zw.style.transform = 'scale(' + scale + ')';
+  later(() => { zw.style.transform = 'scale(1)'; zw.classList.remove('z'); }, hold);
+}
+function runTerm(){
+  pscene('p5');
+  $('term').innerHTML = '';
+  $('zw').style.transform = 'scale(1)';
+  $('hudSession').textContent = 'SESSION ' + hex();
+  let t = 150, last = null;
+  const at = (ms, fn) => { t += ms; later(fn, t); };
+  const L = (txt, cls, ms = 260) => at(ms, () => { last = tline(txt, cls); });
+  const Z = (hold = 1000) => { at(120, () => zoomTo(last, hold)); t += hold + 300; };
+  const H = n => { for (let i = 0; i < n; i++) at(38, () => tline(Array.from({length:6}, () => rnd(0,0xffffff).toString(16).padStart(6,'0')).join(' '), 'd')); };
+  const B = (ms, label = '') => { at(200, () => {
+    const d = tline(''); let p = 0;
+    const step = () => { p += 5; d.textContent = label + '[' + '█'.repeat(p/5) + '░'.repeat(20 - p/5) + '] ' + p + '%'; if (p < 100) later(step, ms/20); };
+    step();
+  }); t += ms + 120; };
+  const C = (label, total, ms) => { at(150, () => {
+    const d = tline(''); let i = 0;
+    const step = () => { i++; d.textContent = label + Math.round(total*i/20).toLocaleString('ru-RU'); if (i < 20) later(step, ms/20); };
+    step();
+  }); t += ms + 100; };
+
+  L('$ sudo ./breach --target ' + ipv4(), 'b', 300);
+  L('[*] Инициализация модуля обхода...');
+  L('[*] Сканирование подсети 192.168.0.0/24');
+  L('host ' + ipv4() + '   open: 22 80 443', 'd', 200);
+  L('host ' + ipv4() + '   open: 8080', 'd', 160);
+  L('host ' + ipv4() + '   filtered', 'd', 160);
+  L('[+] ЦЕЛЬ НАЙДЕНА', 'b', 350); Z(1100);
+  L('    устройство: ' + DEVICE, 'd');
+  L('    IP: 91.' + rnd(100,250) + '.' + rnd(10,250) + '.' + rnd(2,250) + ' (провайдер: Ростелеком)', 'd', 200);
+  L('    геолокация: г. Тамбов, РФ [52.7213 N, 41.4523 E]', 'd', 200);
+  L('[*] Обход брандмауэра...'); B(1400);
+  L('[!] защита уровня 3, продолжаем', 'w');
+  L('[*] Подбор пароля, дамп хэшей:'); H(16);
+  L('[!] ОШИБКА: доступ запрещён', 'r', 300);
+  L('[*] Повторная попытка через уязвимость...', null, 400); B(1200);
+  L('[+] ROOT ACCESS', 'b', 300); Z(1000);
+  L('[*] Копирование данных:');
+  C('    фото ........... ', 1284, 1100);
+  C('    сообщения ...... ', 48392, 1300);
+  C('    контакты ....... ', 212, 700);
+  L('[*] Подключение к камере...', null, 300);
+  L('[+] КАМЕРА: ПОДКЛЮЧЕНА', 'b', 700); Z(1000);
+  L('[!] обнаружен объект: милота 99%', 'w', 300);
+  at(900, runSlam);
+}
+
+function runSlam(){
+  pscene('p6');
+  vib([70, 40, 130]);
+  later(runEye, 2100);
+}
+
+function startMatrix(){
+  const c = $('mx'), ctx = c.getContext('2d');
+  c.width = innerWidth; c.height = innerHeight;
+  const fs = 16, cols = Math.ceil(c.width/fs);
+  const drops = Array.from({length: cols}, () => Math.random()*-30);
+  const chars = '01♥ABCDEF∆Ж';
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, c.width, c.height);
+  mxOn = true;
+  const loop = () => {
+    if (!mxOn) return;
+    ctx.fillStyle = 'rgba(0,0,0,.09)'; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.fillStyle = '#22ff6a'; ctx.font = fs + 'px monospace';
+    drops.forEach((y, i) => {
+      ctx.fillText(chars[rnd(0, chars.length - 1)], i*fs, y*fs);
+      drops[i] = (y*fs > c.height && Math.random() > .975) ? 0 : y + 1;
+    });
+    later(loop, 50);
+  };
+  loop();
+}
+
+function runEye(){
+  pscene('p7');
+  const box = $('eyebox'); box.classList.remove('in', 'zoom');
+  startMatrix();
+  later(() => { box.classList.add('in'); vib([80, 50, 80]); }, 700);
+  later(() => box.classList.add('zoom'), 2200);
+  later(() => { mxOn = false; runRed(); }, 3900);
+}
+
+function runRed(){
+  pscene('p2');
+  $('skull').textContent = SKULL;
+  later(runBlue, 2200);
+}
+
+function runBlue(){
+  pscene('p3');
+  const body = $('bBody'); body.innerHTML = '';
+  $('bFootL').textContent = 'ID: ' + hex().slice(2) + '-' + Math.floor(Math.random()*9999);
+  $('prog').style.width = '0';
+  $('bReply').textContent = '';
+  $('bInput').value = '';
+  $('alertBox').classList.remove('on');
+  // таймер обратного отсчёта
+  let secs = 72*3600 - 1;
+  const fmt = x => [Math.floor(x/3600), Math.floor(x%3600/60), x%60].map(v => String(v).padStart(2,'0')).join(':');
+  const tm = $('timer');
+  const tickT = () => { tm.textContent = CONFIG.TIMER_LABEL + ' ' + fmt(secs); secs -= 7; later(tickT, 200); };
+  tickT();
+  // «шифрование» файлов
+  const fl = $('files'); fl.innerHTML = '';
+  CONFIG.FILES.forEach((name, i) => later(() => {
+    const d = document.createElement('div');
+    d.innerHTML = '';
+    d.textContent = name.padEnd(26, '.') + ' ';
+    const ok = document.createElement('span'); ok.className = 'ok'; ok.textContent = 'ЗАШИФРОВАНО';
+    d.appendChild(ok); fl.appendChild(d);
+    while (fl.children.length > 4) fl.removeChild(fl.firstChild);
+  }, 700 + i*520));
+  // печатаем абзацы по очереди
+  let delay = 300;
+  CONFIG.BSOD_BODY.forEach(txt => {
+    const p = document.createElement('p'); body.appendChild(p);
+    const speed = 10;
+    later(() => typeInto(p, txt, speed), delay);
+    delay += txt.length * speed + 250;
+  });
+  // прогресс-бар
+  later(() => { const p = $('prog'); p.style.transition = 'width ' + (delay/1000) + 's linear'; p.style.width = '92%'; }, 200);
+  // красное окошко
+  later(() => $('alertBox').classList.add('on'), delay + 1800);
+  later(() => $('alertBox').classList.remove('on'), delay + 4300);
+  // раскрытие шутки
+  later(reveal, delay + 5200);
+}
+
+function typeInto(el, text, speed){
+  let i = 0;
+  const step = () => { el.textContent = text.slice(0, ++i); if (i < text.length) later(step, speed); };
+  step();
+}
+
+let replyIdx = 0;
+$('bForm').addEventListener('submit', e => {
+  e.preventDefault();
+  $('bReply').textContent = CONFIG.BSOD_REPLIES[replyIdx++ % CONFIG.BSOD_REPLIES.length];
+  $('bInput').value = '';
+});
+
+function reveal(){
+  pscene('p4');
+  requestAnimationFrame(() => requestAnimationFrame(() => $('p4').classList.add('show')));
+}
+
+/* ---- перезапуск ---- */
+function restart(){
+  clearAll();
+  opened = false; wrongCount = 0; replyIdx = 0; mxOn = false;
+  $('zw').style.transform = 'scale(1)';
+  $('prank').classList.remove('on');
+  $('restart').classList.remove('on');
+  document.querySelectorAll('.pscene').forEach(s => s.classList.remove('on','show'));
+  $('p4').classList.remove('show');
+  $('envStage').classList.remove('open');
+  const cap = $('cap');
+  cap.classList.remove('blink'); cap.style.animation = ''; cap.textContent = CONFIG.ENVELOPE_CAPTION;
+  $('pw').value = '';
+  $('msg').classList.remove('show');
+  // перезапуск CSS-анимаций экрана конверта
+  const env = $('s-env'); env.classList.remove('active'); void env.offsetWidth;
+  show('s-lock');
+}
+$('restart').addEventListener('click', restart);
+$('again').addEventListener('click', restart);
+
+applyTexts();
+makeHearts();
+</script>
+</body>
+</html>
+
+</body></html>
